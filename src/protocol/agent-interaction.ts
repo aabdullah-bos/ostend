@@ -36,11 +36,15 @@ export type HeaderFields = Readonly<
 
 const requiredMembers = ["actor", "mode", "version"] as const;
 
-function invalid(reasonCode: DeclarationReasonCode): DeclarationResult {
+function invalid(
+  reasonCode: DeclarationReasonCode,
+  profileVersion?: number
+): DeclarationResult {
   return {
     classification: "invalid",
     mode: "unspecified",
-    reasonCode
+    reasonCode,
+    ...(profileVersion === undefined ? {} : { profileVersion })
   };
 }
 
@@ -174,29 +178,36 @@ export function classifyAgentInteraction(
   if (dictionary.size === 0) {
     return invalid("missing_member");
   }
+  const versionMember = asUnparameterizedItem(dictionary, "version");
+  const knownVersion =
+    versionMember !== undefined &&
+    typeof versionMember[0] === "number" &&
+    Number.isInteger(versionMember[0])
+      ? versionMember[0]
+      : undefined;
   if ([...dictionary.keys()].some((key) => !requiredMembers.includes(key as never))) {
-    return invalid("unknown_member");
+    return invalid("unknown_member", knownVersion);
   }
   if (
     [...dictionary.values()].some(
       (member) => Array.isArray(member[0]) || member[1].size > 0
     )
   ) {
-    return invalid("unknown_member");
+    return invalid("unknown_member", knownVersion);
   }
   if (requiredMembers.some((key) => !dictionary.has(key))) {
-    return invalid("missing_member");
+    return invalid("missing_member", knownVersion);
   }
 
   const actor = asUnparameterizedItem(dictionary, "actor");
   const mode = asUnparameterizedItem(dictionary, "mode");
-  const version = asUnparameterizedItem(dictionary, "version");
+  const version = versionMember;
 
   if (actor === undefined || tokenValue(actor) !== "agent") {
-    return invalid("unsupported_actor");
+    return invalid("unsupported_actor", knownVersion);
   }
   if (mode === undefined || tokenValue(mode) !== "autonomous") {
-    return invalid("unsupported_mode");
+    return invalid("unsupported_mode", knownVersion);
   }
   if (
     version === undefined ||

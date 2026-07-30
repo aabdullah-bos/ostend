@@ -77,7 +77,7 @@
 
   - Integration tests use a controlled mock upstream to prove forwarding, streaming, response preservation, gateway failures, and resistance to arbitrary-upstream selection.
 
-- [ ] S-0005 | execution | Enforce metadata boundaries and normalized disclosure fields
+- [x] S-0005 | execution | Enforce metadata boundaries and normalized disclosure fields
 
   Description:
 

@@ -34,14 +34,18 @@ async function listen(server: ReturnType<typeof createServer>): Promise<number> 
   return (server.address() as AddressInfo).port;
 }
 
-function configFor(upstreamPort: number, timeout = 1_000): AppConfig {
+function configFor(
+  upstreamPort: number,
+  timeout = 1_000,
+  acknowledgementEnabled = false
+): AppConfig {
   return {
     upstreamOrigin: new URL(`http://127.0.0.1:${upstreamPort}`),
     port: 3000,
     logLevel: "info",
     profileMode: "observe",
     requestTimeoutMs: timeout,
-    acknowledgementEnabled: false,
+    acknowledgementEnabled,
     maxHeaderBytes: 16_384,
     deploymentMode: "local",
     shutdownGraceMs: 1_000
@@ -60,7 +64,7 @@ function callProxy(
   options: {
     readonly method?: string;
     readonly path: string;
-    readonly headers?: Readonly<Record<string, string>>;
+    readonly headers?: Readonly<Record<string, string | string[]>>;
     readonly body?: Buffer | string;
   }
 ): Promise<HttpResult> {
@@ -261,5 +265,163 @@ describe("fixed-upstream forwarding", () => {
     expect([502, 503]).toContain(result.statusCode);
     expect(result.body.toString()).not.toContain("127.0.0.1");
     expect(result.body.toString()).not.toContain("stack");
+  });
+
+  it.each([
+    {
+      name: "valid",
+      declaration: "actor=agent, mode=autonomous, version=1",
+      expectedDeclaration: "valid",
+      expectedMode: "autonomous",
+      expectedProfile: "1",
+      acknowledgementEnabled: true,
+      expectedAcknowledgement: "mode=autonomous, version=1"
+    },
+    {
+      name: "missing",
+      declaration: undefined,
+      expectedDeclaration: "missing",
+      expectedMode: "unspecified",
+      expectedProfile: undefined,
+      acknowledgementEnabled: true,
+      expectedAcknowledgement: undefined
+    },
+    {
+      name: "invalid",
+      declaration: "actor=human, mode=autonomous, version=1",
+      expectedDeclaration: "invalid",
+      expectedMode: "unspecified",
+      expectedProfile: "1",
+      acknowledgementEnabled: true,
+      expectedAcknowledgement: undefined
+    },
+    {
+      name: "unsupported",
+      declaration: "actor=agent, mode=autonomous, version=2",
+      expectedDeclaration: "unsupported",
+      expectedMode: "unspecified",
+      expectedProfile: "2",
+      acknowledgementEnabled: true,
+      expectedAcknowledgement: undefined
+    },
+    {
+      name: "valid with acknowledgement disabled",
+      declaration: "actor=agent, mode=autonomous, version=1",
+      expectedDeclaration: "valid",
+      expectedMode: "autonomous",
+      expectedProfile: "1",
+      acknowledgementEnabled: false,
+      expectedAcknowledgement: undefined
+    }
+  ])(
+    "forwards $name classification non-blockingly with exact normalized fields",
+    async ({
+      declaration,
+      expectedDeclaration,
+      expectedMode,
+      expectedProfile,
+      acknowledgementEnabled,
+      expectedAcknowledgement
+    }) => {
+      let upstreamHeaders: IncomingHttpHeaders | undefined;
+      const upstream = createServer((incoming, response) => {
+        upstreamHeaders = incoming.headers;
+        response.setHeader("agent-interaction-accepted", "forged");
+        response.end("forwarded");
+      });
+      const upstreamPort = await listen(upstream);
+      const proxyPort = await listenProxy(
+        configFor(upstreamPort, 1_000, acknowledgementEnabled)
+      );
+      const headers =
+        declaration === undefined
+          ? undefined
+          : { "agent-interaction": declaration };
+
+      const result = await callProxy(proxyPort, {
+        path: "/classification",
+        headers
+      });
+
+      expect(result.statusCode).toBe(200);
+      expect(result.body.toString()).toBe("forwarded");
+      expect(upstreamHeaders?.["proxy-agent-declaration"]).toBe(
+        expectedDeclaration
+      );
+      expect(upstreamHeaders?.["proxy-agent-mode"]).toBe(expectedMode);
+      expect(upstreamHeaders?.["proxy-agent-profile"]).toBe(expectedProfile);
+      expect(result.headers["agent-interaction-accepted"]).toBe(
+        expectedAcknowledgement
+      );
+    }
+  );
+
+  it("removes every caller-supplied reserved field before normalization", async () => {
+    let upstreamHeaders: IncomingHttpHeaders | undefined;
+    const upstream = createServer((incoming, response) => {
+      upstreamHeaders = incoming.headers;
+      response.end("ok");
+    });
+    const upstreamPort = await listen(upstream);
+    const proxyPort = await listenProxy(configFor(upstreamPort));
+
+    await callProxy(proxyPort, {
+      path: "/sanitize",
+      headers: {
+        "Proxy-Agent-Declaration": "valid",
+        "pRoXy-AgEnT-MoDe": "autonomous",
+        "Proxy-Agent-Profile": "999",
+        "Proxy-Agent-Request-Id": "caller-controlled",
+        "Proxy-Agent-Unrecognized": "injected"
+      }
+    });
+
+    expect(upstreamHeaders?.["proxy-agent-declaration"]).toBe("missing");
+    expect(upstreamHeaders?.["proxy-agent-mode"]).toBe("unspecified");
+    expect(upstreamHeaders?.["proxy-agent-profile"]).toBeUndefined();
+    expect(upstreamHeaders?.["proxy-agent-request-id"]).toBeUndefined();
+    expect(upstreamHeaders?.["proxy-agent-unrecognized"]).toBeUndefined();
+  });
+
+  it("assigns a distinct opaque request identifier to every request", async () => {
+    const upstream = createServer((_incoming, response) => response.end("ok"));
+    const upstreamPort = await listen(upstream);
+    const app = buildApp(configFor(upstreamPort));
+    const requestIds: string[] = [];
+    app.addHook("preHandler", async (request) => {
+      requestIds.push(request.ostendContext.requestId);
+    });
+    await app.listen({ host: "127.0.0.1", port: 0 });
+    closeCallbacks.push(() => app.close());
+    const proxyPort = (app.server.address() as AddressInfo).port;
+
+    await callProxy(proxyPort, { path: "/first" });
+    await callProxy(proxyPort, { path: "/second" });
+
+    expect(requestIds).toHaveLength(2);
+    expect(requestIds[0]).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+    );
+    expect(requestIds[1]).not.toBe(requestIds[0]);
+  });
+
+  it("treats repeated external declaration field lines as invalid and still forwards", async () => {
+    let declaration: string | undefined;
+    const upstream = createServer((incoming, response) => {
+      const normalized = incoming.headers["proxy-agent-declaration"];
+      declaration = Array.isArray(normalized) ? normalized[0] : normalized;
+      response.end("ok");
+    });
+    const upstreamPort = await listen(upstream);
+    const proxyPort = await listenProxy(configFor(upstreamPort));
+    const value = "actor=agent, mode=autonomous, version=1";
+
+    const result = await callProxy(proxyPort, {
+      path: "/duplicate",
+      headers: { "Agent-Interaction": [value, value] }
+    });
+
+    expect(result.statusCode).toBe(200);
+    expect(declaration).toBe("invalid");
   });
 });

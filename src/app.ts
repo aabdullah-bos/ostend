@@ -4,6 +4,7 @@ import Fastify, { type FastifyInstance } from "fastify";
 
 import type { AppConfig } from "./config.js";
 import { registerProxyRoutes } from "./proxy.js";
+import { registerRequestContext } from "./request-context.js";
 
 export class ReadinessState {
   public constructor(private acceptingTraffic = true) {}
@@ -38,6 +39,7 @@ export function buildApp(
   app.addContentTypeParser("*", (_request, payload, done) => {
     done(null, payload);
   });
+  registerRequestContext(app, config);
 
   app.get("/healthz", async () => ({ status: "healthy" }));
   app.get("/readyz", async (_request, reply) => {

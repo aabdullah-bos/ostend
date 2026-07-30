@@ -1,9 +1,10 @@
 import replyFrom from "@fastify/reply-from";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { Agent as HttpAgent } from "node:http";
+import { Agent as HttpAgent, type IncomingHttpHeaders } from "node:http";
 import { Agent as HttpsAgent } from "node:https";
 
 import type { AppConfig } from "./config.js";
+import type { DeclarationResult } from "./protocol/agent-interaction.js";
 
 const gatewayLabels = {
   502: "Bad Gateway",
@@ -19,6 +20,8 @@ function forwardRequest(
   return reply.from(request.raw.url, {
     timeout,
     retriesCount: 0,
+    rewriteRequestHeaders: (_outgoingRequest, headers) =>
+      normalizedRequestHeaders(headers, request.ostendContext.declaration),
     onError: (outgoingReply, { error }) => {
       const upstreamError = error as Error & { readonly statusCode?: number };
       const statusCode =
@@ -30,6 +33,27 @@ function forwardRequest(
         .send({ error: gatewayLabels[statusCode] });
     }
   });
+}
+
+function normalizedRequestHeaders(
+  incomingHeaders: IncomingHttpHeaders,
+  declaration: DeclarationResult
+): IncomingHttpHeaders {
+  const headers = { ...incomingHeaders };
+
+  for (const name of Object.keys(headers)) {
+    if (name.toLowerCase().startsWith("proxy-agent-")) {
+      delete headers[name];
+    }
+  }
+
+  headers["proxy-agent-declaration"] = declaration.classification;
+  headers["proxy-agent-mode"] = declaration.mode;
+  if (declaration.profileVersion !== undefined) {
+    headers["proxy-agent-profile"] = String(declaration.profileVersion);
+  }
+
+  return headers;
 }
 
 export function registerProxyRoutes(
