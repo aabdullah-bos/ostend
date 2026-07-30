@@ -11,7 +11,27 @@
 
 ## Validation Commands
 
-No application, test, container, performance, or deployment commands are established in the repository at initialization. S-0001 must create and execute the real build and automated-test commands and record them here. Later slices must add only commands that actually exist and have been run for their stated purpose.
+Run the following commands from the project root.
+
+Build the TypeScript application:
+
+```sh
+npm run build
+```
+
+Run unit tests:
+
+```sh
+npm run test:unit
+```
+
+Run integration tests:
+
+```sh
+npm run test:integration
+```
+
+These commands were established and executed successfully by S-0001. Later slices must add only commands that actually exist and have been run for their stated purpose.
 
 ## Known Constraints
 
