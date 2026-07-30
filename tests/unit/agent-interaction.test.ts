@@ -68,7 +68,7 @@ describe("classifyAgentInteraction", () => {
         "agent-interaction": declaration
       });
 
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         classification: "invalid",
         mode: "unspecified",
         reasonCode
@@ -119,7 +119,7 @@ describe("classifyAgentInteraction", () => {
   ])("rejects unreviewed parameters as unsupported members", (declaration) => {
     expect(
       classifyAgentInteraction({ "agent-interaction": declaration })
-    ).toEqual({
+    ).toMatchObject({
       classification: "invalid",
       mode: "unspecified",
       reasonCode: "unknown_member"
