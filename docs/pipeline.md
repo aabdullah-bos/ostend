@@ -43,7 +43,7 @@
   - Automated configuration and lifecycle checks cover valid, invalid, hosted, and local-development cases.
   - Health and readiness checks prove their documented outcomes without exposing secrets or materially loading the upstream.
 
-- [ ] S-0003 | execution | Implement Version 1 declaration parsing and classification
+- [x] S-0003 | execution | Implement Version 1 declaration parsing and classification
 
   Description:
 
@@ -60,7 +60,7 @@
 
   - Unit tests cover every case required by SRS section 13.1, including HTTP field-name case behavior and reason-code generation.
 
-- [ ] S-0004 | execution | Implement transparent fixed-upstream proxy forwarding
+- [x] S-0004 | execution | Implement transparent fixed-upstream proxy forwarding
 
   Description:
 
