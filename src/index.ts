@@ -3,6 +3,12 @@ export { ConfigError, loadConfig } from "./config.js";
 export { installShutdownHandlers, shutdownApp } from "./lifecycle.js";
 export { registerProxyRoutes } from "./proxy.js";
 export {
+  observedPath,
+  proxySoftwareVersion,
+  registerObservations,
+  safeErrorSerializer
+} from "./observation.js";
+export {
   createRequestContext,
   registerRequestContext
 } from "./request-context.js";

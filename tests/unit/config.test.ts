@@ -21,6 +21,16 @@ describe("loadConfig", () => {
     expect(config.upstreamOrigin.href).toBe("https://upstream.example/base");
     expect(config.profileMode).toBe("observe");
     expect(config.acknowledgementEnabled).toBe(false);
+    expect(config.pathLoggingMode).toBe("normalized");
+  });
+
+  it("supports fully redacted path observations", () => {
+    expect(
+      loadConfig({
+        ...hostedEnvironment,
+        PATH_LOGGING_MODE: "redacted"
+      }).pathLoggingMode
+    ).toBe("redacted");
   });
 
   it("rejects missing required settings without echoing their values", () => {

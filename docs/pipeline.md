@@ -95,7 +95,7 @@
 
   - Integration tests cover reserved-field injection, all normalized-field combinations, request correlation, acknowledgement states, and non-blocking forwarding.
 
-- [ ] S-0006 | execution | Implement privacy-conscious structured observations
+- [x] S-0006 | execution | Implement privacy-conscious structured observations
 
   Description:
 
