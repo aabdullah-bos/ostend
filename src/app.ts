@@ -1,8 +1,13 @@
 import { createServer } from "node:http";
+import type { Writable } from "node:stream";
 
 import Fastify, { type FastifyInstance } from "fastify";
 
 import type { AppConfig } from "./config.js";
+import {
+  registerObservations,
+  safeErrorSerializer
+} from "./observation.js";
 import { registerProxyRoutes } from "./proxy.js";
 import { registerRequestContext } from "./request-context.js";
 
@@ -20,10 +25,18 @@ export class ReadinessState {
 
 export function buildApp(
   config: AppConfig,
-  readiness = new ReadinessState()
+  readiness = new ReadinessState(),
+  logStream?: Writable
 ): FastifyInstance {
   const app = Fastify({
-    logger: false,
+    logger: {
+      level: config.logLevel,
+      serializers: {
+        err: safeErrorSerializer
+      },
+      ...(logStream === undefined ? {} : { stream: logStream })
+    },
+    disableRequestLogging: true,
     requestTimeout: config.requestTimeoutMs,
     serverFactory: (handler) =>
       createServer(
@@ -40,6 +53,7 @@ export function buildApp(
     done(null, payload);
   });
   registerRequestContext(app, config);
+  registerObservations(app, config);
 
   app.get("/healthz", async () => ({ status: "healthy" }));
   app.get("/readyz", async (_request, reply) => {

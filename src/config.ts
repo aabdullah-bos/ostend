@@ -3,6 +3,7 @@ import { isIP } from "node:net";
 import { z } from "zod";
 
 const logLevels = ["fatal", "error", "warn", "info", "debug", "trace"] as const;
+const pathLoggingModes = ["normalized", "redacted"] as const;
 
 const environmentSchema = z.object({
   UPSTREAM_ORIGIN: z.string().url(),
@@ -14,6 +15,7 @@ const environmentSchema = z.object({
   MAX_HEADER_BYTES: z.coerce.number().int().min(1_024),
   DEPLOYMENT_MODE: z.enum(["hosted", "local"]),
   SHUTDOWN_GRACE_MS: z.coerce.number().int().positive(),
+  PATH_LOGGING_MODE: z.enum(pathLoggingModes).default("normalized"),
   NODE_TLS_REJECT_UNAUTHORIZED: z.string().optional()
 });
 
@@ -27,6 +29,7 @@ export interface AppConfig {
   readonly maxHeaderBytes: number;
   readonly deploymentMode: "hosted" | "local";
   readonly shutdownGraceMs: number;
+  readonly pathLoggingMode?: (typeof pathLoggingModes)[number];
 }
 
 export class ConfigError extends Error {
@@ -95,6 +98,7 @@ export function loadConfig(environment: NodeJS.ProcessEnv): AppConfig {
     acknowledgementEnabled: parsed.data.ACKNOWLEDGEMENT_ENABLED === "true",
     maxHeaderBytes: parsed.data.MAX_HEADER_BYTES,
     deploymentMode: parsed.data.DEPLOYMENT_MODE,
-    shutdownGraceMs: parsed.data.SHUTDOWN_GRACE_MS
+    shutdownGraceMs: parsed.data.SHUTDOWN_GRACE_MS,
+    pathLoggingMode: parsed.data.PATH_LOGGING_MODE
   });
 }

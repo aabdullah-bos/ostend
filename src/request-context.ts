@@ -12,6 +12,7 @@ import {
 export interface OstendRequestContext {
   readonly requestId: string;
   readonly declaration: DeclarationResult;
+  readonly startedAt: bigint;
 }
 
 declare module "fastify" {
@@ -45,7 +46,8 @@ export function createRequestContext(
 ): OstendRequestContext {
   return Object.freeze({
     requestId: randomUUID(),
-    declaration: classifyAgentInteraction(headerFieldsFromRaw(rawHeaders))
+    declaration: classifyAgentInteraction(headerFieldsFromRaw(rawHeaders)),
+    startedAt: process.hrtime.bigint()
   });
 }
 

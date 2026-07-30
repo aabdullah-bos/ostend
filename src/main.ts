@@ -9,7 +9,11 @@ async function main(): Promise<void> {
     const app = buildApp(config, readiness);
 
     installShutdownHandlers(app, readiness, config);
-    await app.listen({ host: "0.0.0.0", port: config.port });
+    await app.listen({
+      host: "0.0.0.0",
+      port: config.port,
+      listenTextResolver: () => "Ostend is accepting traffic"
+    });
   } catch (error) {
     if (error instanceof ConfigError) {
       process.stderr.write(`${error.message}\n`);
