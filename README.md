@@ -69,6 +69,8 @@ Planned phases include a local prototype, a hosted pilot to validate deployment 
 
 ## Where to start
 
+- Read the Iteration 1 protocol, integration, operations, and trust-boundary
+  guide: docs/guide.md
 - Read the Product Requirements Document: docs/prd.md
 - Read the Software Requirements Specification: docs/srs.md
 
