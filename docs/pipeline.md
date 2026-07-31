@@ -132,7 +132,7 @@
   - The complete SRS integration-test inventory passes against a controlled mock upstream.
   - Automated checks confirm credentials and bodies never appear in captured logs.
 
-- [ ] S-0008 | execution | Package a portable non-root OCI container
+- [x] S-0008 | execution | Package a portable non-root OCI container
 
   Description:
 

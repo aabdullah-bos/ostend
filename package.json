@@ -12,7 +12,8 @@
     "start": "node dist/src/main.js",
     "test": "npm run test:unit && npm run test:integration",
     "test:unit": "vitest run tests/unit",
-    "test:integration": "vitest run tests/integration"
+    "test:integration": "vitest run tests/integration",
+    "test:container": "sh scripts/validate-container.sh"
   },
   "dependencies": {
     "@fastify/reply-from": "^12.6.4",

@@ -31,7 +31,17 @@ Run integration tests:
 npm run test:integration
 ```
 
-These commands were established and executed successfully by S-0001. Later slices must add only commands that actually exist and have been run for their stated purpose.
+Build and exercise the OCI container, including its non-root runtime user,
+health endpoint, and readiness endpoint:
+
+```sh
+npm run test:container
+```
+
+The build, unit, and integration commands were established and executed
+successfully by S-0001. The container command was established and executed
+successfully by S-0008. Later slices must add only commands that actually exist
+and have been run for their stated purpose.
 
 ## Known Constraints
 
