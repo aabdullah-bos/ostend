@@ -43,6 +43,16 @@ successfully by S-0001. The container command was established and executed
 successfully by S-0008. Later slices must add only commands that actually exist
 and have been run for their stated purpose.
 
+Run the controlled disclosure-processing performance check:
+
+```sh
+npm run test:performance
+```
+
+This measures the declaration classifier after warmup over 5,000 iterations,
+excluding network and upstream time. Its p95 result is an internal product
+target of no more than 10 milliseconds, not a public service-level agreement.
+
 ## Known Constraints
 
 - Deterministic RAES artifact validation does not validate the application.
