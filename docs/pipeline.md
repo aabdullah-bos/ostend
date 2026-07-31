@@ -149,7 +149,7 @@
 
   - Build and run the container, inspect the runtime user, and exercise `/healthz` and `/readyz`.
 
-- [ ] S-0009 | execution | Publish protocol, integration, and trust-boundary documentation
+- [x] S-0009 | execution | Publish protocol, integration, and trust-boundary documentation
 
   Description:
 
