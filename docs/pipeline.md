@@ -185,7 +185,7 @@
 
   - Run the established controlled performance and privacy checks and retain their non-sensitive results.
 
-- [ ] S-0011 | execution | Deploy and validate the Railway proof of concept
+- [x] S-0011 | execution | Deploy and validate the Railway proof of concept
 
   Description:
 
